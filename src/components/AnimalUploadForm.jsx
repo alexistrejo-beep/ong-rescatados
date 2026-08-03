@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Camera, MapPin, Send, Phone } from 'lucide-react';
+import { Camera, MapPin, Send, Phone, AlertCircle } from 'lucide-react';
 
 export default function AnimalUploadForm({ onAddAnimal }) {
   const [form, setForm] = useState({
@@ -9,21 +9,48 @@ export default function AnimalUploadForm({ onAddAnimal }) {
     phone: '',
     imagePreview: null
   });
+  const [toast, setToast] = useState('');
+
+  const showToast = (msg) => {
+    setToast(msg);
+    setTimeout(() => setToast(''), 3000);
+  };
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
-    if (file) {
-      setForm({ ...form, imagePreview: URL.createObjectURL(file) });
+    if (!file) return;
+
+    // Validación de peso máximo de imagen (2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      showToast('⚠️ La imagen es demasiado pesada. Elige una menor a 2MB.');
+      e.target.value = '';
+      return;
     }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setForm((prev) => ({ ...prev, imagePreview: reader.result }));
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!form.imagePreview) return alert('Por favor sube una foto del animal.');
-    
-    onAddAnimal({ ...form, id: Date.now() });
+    if (!form.imagePreview) {
+      showToast('⚠️ Por favor sube una foto del animal.');
+      return;
+    }
+
+    onAddAnimal({
+      ...form,
+      description: `Rescatado/encontrado en ${form.location}. Teléfono de contacto: ${form.phone}`,
+      reactions: { heart: 0, paws: 0, sad: 0, party: 0 },
+      comments: [],
+      reports: 0
+    });
+
     setForm({ name: '', type: 'Perro', location: '', phone: '', imagePreview: null });
-    alert('¡Animal registrado con éxito!');
+    showToast('✨ ¡Animal registrado con éxito!');
   };
 
   return (
@@ -33,27 +60,47 @@ export default function AnimalUploadForm({ onAddAnimal }) {
       borderRadius: '20px',
       padding: '24px',
       boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.05)',
-      marginBottom: '32px'
+      marginBottom: '32px',
+      position: 'relative'
     }}>
+      {/* Toast Notification */}
+      {toast && (
+        <div style={{
+          position: 'fixed',
+          bottom: '20px',
+          right: '20px',
+          background: '#0f172a',
+          color: '#ffffff',
+          padding: '12px 20px',
+          borderRadius: '12px',
+          boxShadow: '0 10px 15px -3px rgba(0,0,0,0.3)',
+          zIndex: 1000,
+          fontSize: '0.9rem',
+          fontWeight: 'bold'
+        }}>
+          {toast}
+        </div>
+      )}
+
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
         <div style={{ background: '#eff6ff', padding: '10px', borderRadius: '12px', color: '#2563eb' }}>
           <Camera size={24} />
         </div>
         <div>
           <h2 style={{ margin: 0, fontSize: '1.3rem', color: '#1e293b' }}>Reportar Animal Encontrado</h2>
-          <p style={{ margin: 0, fontSize: '0.88rem', color: '#64748b' }}>Completa los datos para que te contacten</p>
+          <p style={{ margin: 0, fontSize: '0.88rem', color: '#64748b' }}>Completa los datos para coordinar el refugio</p>
         </div>
       </div>
 
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '20px' }}>
         
-        {/* Nombre y Especie */}
         <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '12px' }}>
           <div>
-            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 'bold', color: '#475569', marginBottom: '6px' }}>
+            <label htmlFor="animal-name" style={{ display: 'block', fontSize: '0.85rem', fontWeight: 'bold', color: '#475569', marginBottom: '6px' }}>
               Nombre / Referencia
             </label>
             <input
+              id="animal-name"
               type="text"
               placeholder="Ej: Manchitas"
               value={form.name}
@@ -64,10 +111,11 @@ export default function AnimalUploadForm({ onAddAnimal }) {
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 'bold', color: '#475569', marginBottom: '6px' }}>
+            <label htmlFor="animal-type" style={{ display: 'block', fontSize: '0.85rem', fontWeight: 'bold', color: '#475569', marginBottom: '6px' }}>
               Especie
             </label>
             <select
+              id="animal-type"
               value={form.type}
               onChange={(e) => setForm({ ...form, type: e.target.value })}
               style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #cbd5e1', background: '#fff', boxSizing: 'border-box' }}
@@ -78,16 +126,16 @@ export default function AnimalUploadForm({ onAddAnimal }) {
           </div>
         </div>
 
-        {/* Teléfono de contacto */}
         <div>
-          <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 'bold', color: '#475569', marginBottom: '6px' }}>
+          <label htmlFor="animal-phone" style={{ display: 'block', fontSize: '0.85rem', fontWeight: 'bold', color: '#475569', marginBottom: '6px' }}>
             Teléfono / WhatsApp de contacto
           </label>
           <div style={{ position: 'relative' }}>
             <Phone size={18} color="#94a3b8" style={{ position: 'absolute', left: '12px', top: '13px' }} />
             <input
+              id="animal-phone"
               type="tel"
-              placeholder="Ej: 3764123456 (sin 0 ni 15)"
+              placeholder="Ej: 3764123456"
               value={form.phone}
               onChange={(e) => setForm({ ...form, phone: e.target.value })}
               required
@@ -96,14 +144,14 @@ export default function AnimalUploadForm({ onAddAnimal }) {
           </div>
         </div>
 
-        {/* Ubicación */}
         <div>
-          <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 'bold', color: '#475569', marginBottom: '6px' }}>
+          <label htmlFor="animal-location" style={{ display: 'block', fontSize: '0.85rem', fontWeight: 'bold', color: '#475569', marginBottom: '6px' }}>
             Ubicación / Barrio
           </label>
           <div style={{ position: 'relative' }}>
             <MapPin size={18} color="#94a3b8" style={{ position: 'absolute', left: '12px', top: '13px' }} />
             <input
+              id="animal-location"
               type="text"
               placeholder="Ej: Posadas, Misiones"
               value={form.location}
@@ -114,28 +162,29 @@ export default function AnimalUploadForm({ onAddAnimal }) {
           </div>
         </div>
 
-        {/* Carga de Foto */}
         <div>
-          <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 'bold', color: '#475569', marginBottom: '6px' }}>
-            Foto del Animal
+          <label htmlFor="animal-photo" style={{ display: 'block', fontSize: '0.85rem', fontWeight: 'bold', color: '#475569', marginBottom: '6px' }}>
+            Foto del Animal (Máximo 2MB)
           </label>
           <input
+            id="animal-photo"
             type="file"
             accept="image/*"
             onChange={handleImageChange}
             required
+            aria-label="Cargar foto del animal"
             style={{ fontSize: '0.9rem', color: '#64748b' }}
           />
           {form.imagePreview && (
             <div style={{ marginTop: '12px', borderRadius: '12px', overflow: 'hidden', maxHeight: '180px' }}>
-              <img src={form.imagePreview} alt="Previsualización" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              <img src={form.imagePreview} alt={`Previsualización de ${form.name || 'animal'}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             </div>
           )}
         </div>
 
-        {/* Botón de Enviar */}
         <button
           type="submit"
+          aria-label="Publicar reporte de animal"
           style={{
             display: 'flex',
             alignItems: 'center',
