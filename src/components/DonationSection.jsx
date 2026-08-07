@@ -1,11 +1,9 @@
 import React, { useState } from 'react';
-import { Copy, Check, Heart, Send, ShoppingBag, ShieldCheck, CreditCard, Lock } from 'lucide-react';
+import { Copy, Check, Heart, Send, ShoppingBag, Calendar, ExternalLink } from 'lucide-react';
 
 export default function DonationSection() {
-  const [method, setMethod] = useState('transfer'); // 'transfer' o 'card'
+  const [method, setMethod] = useState('monthly'); // 'monthly' o 'transfer'
   const [copiedField, setCopiedField] = useState('');
-  const [customAmount, setCustomAmount] = useState('2000');
-  const [isProcessing, setIsProcessing] = useState(false);
 
   // Datos de tu cuenta Ualá Bank S.A.U.
   const ualaData = {
@@ -14,48 +12,17 @@ export default function DonationSection() {
     banco: 'Ualá Bank S.A.U.'
   };
 
+  // 🔗 Tus links reales de Ualá Bis ya integrados
+  const monthlyLinks = {
+    '2000': 'https://pagar.ualabis.com.ar/order/8713b03df846b9dca73a1c05df2367d72107cd1df9e396db',
+    '5000': 'https://pagar.ualabis.com.ar/order/5049362176ddabfd9306859e62eae6aaba73671666172c42',
+    '10000': 'https://pagar.ualabis.com.ar/order/f1e1487e774ae4a81525a93ba138a0bbd9e50b423508f4ec'
+  };
+
   const handleCopy = (text, field) => {
     navigator.clipboard.writeText(text);
     setCopiedField(field);
     setTimeout(() => setCopiedField(''), 2500);
-  };
-
-  // 🔴 AQUÍ ESTÁ EL PASO 2: Conexión REAL con tu archivo /api/process-payment.js
-  const handleCardSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (!customAmount || Number(customAmount) <= 0) {
-      alert('Por favor ingresá un monto válido para donar.');
-      return;
-    }
-
-    setIsProcessing(true);
-
-    try {
-      // Llamamos a la API interna que creaste en la carpeta /api
-      const response = await fetch('/api/process-payment', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          amount: customAmount,
-          description: `Donación de $${customAmount} a Rescatados`
-        })
-      });
-
-      const data = await response.json();
-
-      if (data.success && data.checkoutUrl) {
-        // Redirige al donante al formulario seguro de Ualá Bis para pagar con tarjeta
-        window.location.href = data.checkoutUrl;
-      } else {
-        alert('No se pudo iniciar el pago. Verificá que el monto sea correcto o reintentá en unos minutos.');
-      }
-    } catch (error) {
-      console.error('Error al procesar el pago:', error);
-      alert('Error al conectar con la pasarela de pagos.');
-    } finally {
-      setIsProcessing(false);
-    }
   };
 
   return (
@@ -75,6 +42,25 @@ export default function DonationSection() {
       {/* Selector de Método de Pago */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', background: '#e2e8f0', padding: '4px', borderRadius: '12px' }}>
         <button
+          onClick={() => setMethod('monthly')}
+          style={{
+            border: 'none',
+            padding: '10px',
+            borderRadius: '10px',
+            background: method === 'monthly' ? '#ffffff' : 'transparent',
+            color: method === 'monthly' ? '#0f172a' : '#64748b',
+            fontWeight: 'bold',
+            fontSize: '0.85rem',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '6px'
+          }}
+        >
+          <Calendar size={16} color="#16a34a" /> Apadrinar / Donar
+        </button>
+        <button
           onClick={() => setMethod('transfer')}
           style={{
             border: 'none',
@@ -93,70 +79,59 @@ export default function DonationSection() {
         >
           <Send size={16} color="#2563eb" /> Transferencia / Alias
         </button>
-        <button
-          onClick={() => setMethod('card')}
-          style={{
-            border: 'none',
-            padding: '10px',
-            borderRadius: '10px',
-            background: method === 'card' ? '#ffffff' : 'transparent',
-            color: method === 'card' ? '#0f172a' : '#64748b',
-            fontWeight: 'bold',
-            fontSize: '0.85rem',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '6px'
-          }}
-        >
-          <CreditCard size={16} color="#dc2626" /> Tarjeta de Débito/Crédito
-        </button>
       </div>
 
-      {/* Selector de Monto Libre */}
-      <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '18px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
-        <h3 style={{ margin: '0 0 10px 0', fontSize: '1rem', color: '#1e293b' }}>
-          Monto a donar
-        </h3>
+      {/* VISTA 1: Donación Directa por Link Ualá Bis */}
+      {method === 'monthly' && (
+        <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '18px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
+          <h3 style={{ margin: '0 0 6px 0', fontSize: '1.05rem', color: '#166534', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            💚 Convertite en Padrino o Madrina
+          </h3>
+          <p style={{ margin: '0 0 16px 0', fontSize: '0.85rem', color: '#64748b' }}>
+            Elegí el monto con el que querés colaborar. Al hacer clic te dirigiremos al checkout oficial de Ualá Bis:
+          </p>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '12px' }}>
-          {['2000', '5000', '10000'].map((amt) => (
-            <button
-              key={amt}
-              onClick={() => setCustomAmount(amt)}
-              style={{
-                background: customAmount === amt ? '#16a34a' : '#f8fafc',
-                color: customAmount === amt ? '#ffffff' : '#334155',
-                border: '1px solid #cbd5e1',
-                padding: '8px',
-                borderRadius: '8px',
-                fontWeight: 'bold',
-                cursor: 'pointer',
-                fontSize: '0.85rem'
-              }}
-            >
-              ${parseInt(amt).toLocaleString('es-AR')}
-            </button>
-          ))}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {[
+              { amount: '2000', label: '$2.000', desc: 'Aporta 1 kg de alimento balanceado' },
+              { amount: '5000', label: '$5.000', desc: 'Cubre vacunas y desparasitación' },
+              { amount: '10000', label: '$10.000', desc: 'Financia atenciones médicas y remedios' }
+            ].map((plan) => (
+              <a
+                key={plan.amount}
+                href={monthlyLinks[plan.amount]}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  background: '#f0fdf4',
+                  border: '1px solid #bbf7d0',
+                  padding: '12px 16px',
+                  borderRadius: '12px',
+                  textDecoration: 'none',
+                  color: '#14532d'
+                }}
+              >
+                <div>
+                  <strong style={{ fontSize: '1rem', display: 'block' }}>{plan.label}</strong>
+                  <span style={{ fontSize: '0.78rem', color: '#166534' }}>{plan.desc}</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: '#16a34a', color: '#fff', padding: '6px 12px', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 'bold' }}>
+                  Donar <ExternalLink size={14} />
+                </div>
+              </a>
+            ))}
+          </div>
         </div>
+      )}
 
-        <div>
-          <input
-            type="number"
-            placeholder="Otro monto ($ ARS)"
-            value={customAmount}
-            onChange={(e) => setCustomAmount(e.target.value)}
-            style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }}
-          />
-        </div>
-      </div>
-
-      {/* VISTA 1: Transferencia Bancaria */}
+      {/* VISTA 2: Transferencia Bancaria Directa */}
       {method === 'transfer' && (
         <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '18px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
           <h3 style={{ margin: '0 0 12px 0', fontSize: '1rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Send size={18} color="#2563eb" /> Transferencia directa (Cualquier Banco/Billetera)
+            <Send size={18} color="#2563eb" /> Transferencia directa (Ualá / Bancos)
           </h3>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -168,7 +143,7 @@ export default function DonationSection() {
               </div>
               <button
                 onClick={() => handleCopy(ualaData.alias, 'alias')}
-                style={{ background: copiedField === 'alias' ? '#dc2626' : '#2563eb', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}
+                style={{ background: copiedField === 'alias' ? '#16a34a' : '#2563eb', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}
               >
                 {copiedField === 'alias' ? <Check size={14} /> : <Copy size={14} />}
                 {copiedField === 'alias' ? '¡Copiado!' : 'Copiar Alias'}
@@ -183,7 +158,7 @@ export default function DonationSection() {
               </div>
               <button
                 onClick={() => handleCopy(ualaData.cbu, 'cbu')}
-                style={{ background: copiedField === 'cbu' ? '#dc2626' : '#2563eb', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}
+                style={{ background: copiedField === 'cbu' ? '#16a34a' : '#2563eb', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}
               >
                 {copiedField === 'cbu' ? <Check size={14} /> : <Copy size={14} />}
                 {copiedField === 'cbu' ? '¡Copiado!' : 'Copiar CBU'}
@@ -191,46 +166,11 @@ export default function DonationSection() {
             </div>
           </div>
           <p style={{ marginTop: '10px', fontSize: '0.75rem', color: '#64748b', textAlign: 'center' }}>Entidad: {ualaData.banco}</p>
-        </div>
-      )}
 
-      {/* VISTA 2: Botón para donar con Tarjeta vía Ualá Bis */}
-      {method === 'card' && (
-        <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '18px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
-          <h3 style={{ margin: '0 0 12px 0', fontSize: '1rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <CreditCard size={18} color="#dc2626" /> Pagar con Tarjeta mediante Ualá Bis
-          </h3>
-          
-          <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '16px' }}>
-            Al hacer clic abajo, se abrirá la pasarela de pagos segura de Ualá donde podrás ingresar los datos de tu tarjeta de crédito o débito.
-          </p>
-
-          <form onSubmit={handleCardSubmit}>
-            <button
-              type="submit"
-              disabled={isProcessing}
-              style={{
-                width: '100%',
-                background: '#16a34a',
-                color: '#ffffff',
-                border: 'none',
-                padding: '14px',
-                borderRadius: '10px',
-                fontWeight: 'bold',
-                cursor: isProcessing ? 'wait' : 'pointer',
-                fontSize: '0.95rem',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px'
-              }}
-            >
-              <Lock size={18} />
-              {isProcessing 
-                ? 'Conectando con Ualá...' 
-                : `Donar $${parseInt(customAmount || '0').toLocaleString('es-AR')} con Tarjeta`}
-            </button>
-          </form>
+          {/* Tip de Transferencia Programada */}
+          <div style={{ marginTop: '14px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '10px', padding: '10px 12px', fontSize: '0.78rem', color: '#1e3a8a' }}>
+            💡 <strong>Tip:</strong> Desde la app de tu banco o billetera virtual podés elegir <em>"Programar transferencia mensual"</em> hacia nuestro Alias para donar automáticamente todos los meses.
+          </div>
         </div>
       )}
 

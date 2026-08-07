@@ -6,7 +6,8 @@ import Transparency from './components/Transparency';
 import { Heart, Home, Camera, ShieldCheck } from 'lucide-react';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('donar');
+  // Pestaña inicial
+  const [activeTab, setActiveTab] = useState('refugio');
   
   // Cargamos los animales guardados en el navegador (localStorage)
   const [animals, setAnimals] = useState(() => {
@@ -15,6 +16,7 @@ export default function App() {
       try {
         return JSON.parse(saved);
       } catch (e) {
+        console.error("Error al leer localStorage:", e);
         return [];
       }
     }
@@ -23,8 +25,12 @@ export default function App() {
       {
         id: 1,
         name: 'Braulio',
+        species: 'Perro',
+        phone: '3764123456',
+        location: 'Posadas, Misiones',
         description: 'Rescatado en la calle. Estaba muy flacuchento pero lleno de amor.',
-        image: 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&q=80&w=600',
+        images: ['https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&q=80&w=600'],
+        date: '27/07/2026',
         adopted: true,
         stories: [
           {
@@ -43,29 +49,43 @@ export default function App() {
     localStorage.setItem('huellitas_animals', JSON.stringify(animals));
   }, [animals]);
 
+  // Función que recibe los datos desde AnimalUploadForm.jsx
   const handleAddAnimal = (newAnimal) => {
     const animalWithDetails = {
       ...newAnimal,
       id: Date.now(),
+      date: new Date().toLocaleDateString('es-AR'),
       adopted: false,
       stories: []
     };
-    setAnimals([animalWithDetails, ...animals]);
+
+    setAnimals(prev => [animalWithDetails, ...prev]);
     setActiveTab('refugio');
   };
 
+  // FUNCIÓN CORREGIDA: Maneja tanto creación (id === null) como actualización
   const handleUpdateAnimal = (id, updatedData) => {
-    setAnimals(animals.map(item => item.id === id ? { ...item, ...updatedData } : item));
+    if (!id) {
+      // Si no viene ID, es una NUEVA publicación creada desde la galería
+      setAnimals(prevAnimals => [updatedData, ...prevAnimals]);
+    } else {
+      // Si viene ID, actualizamos el registro existente (adopción, comentarios, etc.)
+      setAnimals(prevAnimals =>
+        prevAnimals.map(item => (item.id === id ? { ...item, ...updatedData } : item))
+      );
+    }
   };
 
   const handleDeleteAnimal = (id) => {
     if (window.confirm('¿Estás seguro de eliminar a este animalito de la lista?')) {
-      setAnimals(animals.filter(item => item.id !== id));
+      setAnimals(prev => prev.filter(item => item.id !== id));
     }
   };
 
   return (
     <div style={{ maxWidth: '800px', margin: '0 auto', padding: '16px', fontFamily: 'system-ui, sans-serif' }}>
+      
+      {/* Header */}
       <header style={{ textAlign: 'center', marginBottom: '24px' }}>
         <h1 style={{ margin: '0 0 4px 0', color: '#15803d', fontSize: '2rem' }}>🐾 Huellitas de Amor</h1>
         <p style={{ margin: 0, color: '#64748b', fontSize: '0.95rem' }}>Rescates, refugio y donaciones transparentes</p>

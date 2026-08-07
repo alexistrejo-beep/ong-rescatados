@@ -41,8 +41,12 @@ export default function AnimalUploadForm({ onAddAnimal }) {
       return;
     }
 
+    // AHORA SÍ: Mapeamos la propiedad para que la galería lea la imagen correctamente
     onAddAnimal({
       ...form,
+      images: [form.imagePreview], // Compatibilidad con galería basada en array de imágenes
+      image: form.imagePreview,   // Compatibilidad con tarjetas que usan imagen individual
+      species: form.type,         // Compatibilidad con la propiedad 'species' en la galería
       description: `Rescatado/encontrado en ${form.location}. Teléfono de contacto: ${form.phone}`,
       reactions: { heart: 0, paws: 0, sad: 0, party: 0 },
       comments: [],
