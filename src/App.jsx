@@ -3,11 +3,12 @@ import DonationSection from './components/DonationSection';
 import AnimalUploadForm from './components/AnimalUploadForm';
 import AnimalGallery from './components/AnimalGallery';
 import Transparency from './components/Transparency';
-import { Heart, Home, Camera, ShieldCheck } from 'lucide-react';
+import HuellitasSection from './components/HuellitasSection';
+import { Heart, Home, Camera, ShieldCheck, Info } from 'lucide-react'; 
 
 export default function App() {
-  // Pestaña inicial
-  const [activeTab, setActiveTab] = useState('refugio');
+  // Pestaña inicial por defecto
+  const [activeTab, setActiveTab] = useState('conocenos');
   
   // Cargamos los animales guardados en el navegador (localStorage)
   const [animals, setAnimals] = useState(() => {
@@ -63,13 +64,11 @@ export default function App() {
     setActiveTab('refugio');
   };
 
-  // FUNCIÓN CORREGIDA: Maneja tanto creación (id === null) como actualización
+  // Maneja tanto creación (id === null) como actualización
   const handleUpdateAnimal = (id, updatedData) => {
     if (!id) {
-      // Si no viene ID, es una NUEVA publicación creada desde la galería
       setAnimals(prevAnimals => [updatedData, ...prevAnimals]);
     } else {
-      // Si viene ID, actualizamos el registro existente (adopción, comentarios, etc.)
       setAnimals(prevAnimals =>
         prevAnimals.map(item => (item.id === id ? { ...item, ...updatedData } : item))
       );
@@ -82,25 +81,64 @@ export default function App() {
     }
   };
 
+  // Colores de la app adaptados a la nueva estética gris minimalista
+  const themeColors = {
+    textHeader: '#27272a',
+    textMuted: '#71717a',
+    navBg: '#e4e4e7',
+    navBtnActive: '#ffffff',
+    navBtnTextActive: '#27272a',
+    navBtnTextInactive: '#71717a'
+  };
+
   return (
-    <div style={{ maxWidth: '800px', margin: '0 auto', padding: '16px', fontFamily: 'system-ui, sans-serif' }}>
+    <div style={{ 
+      maxWidth: activeTab === 'conocenos' ? '1200px' : '800px', 
+      margin: '0 auto', 
+      padding: '16px', 
+      fontFamily: "'Segoe UI', Roboto, system-ui, sans-serif",
+      transition: 'max-width 0.3s ease'
+    }}>
       
-      {/* Header */}
+      {/* Header en tonos grises */}
       <header style={{ textAlign: 'center', marginBottom: '24px' }}>
-        <h1 style={{ margin: '0 0 4px 0', color: '#15803d', fontSize: '2rem' }}>🐾 Huellitas de Amor</h1>
-        <p style={{ margin: 0, color: '#64748b', fontSize: '0.95rem' }}>Rescates, refugio y donaciones transparentes</p>
+        <h1 style={{ margin: '0 0 4px 0', color: themeColors.textHeader, fontSize: '2rem', fontWeight: '700' }}>🐾 Huellitas de Amor</h1>
+        <p style={{ margin: 0, color: themeColors.textMuted, fontSize: '0.95rem' }}>Rescates, refugio y donaciones transparentes</p>
       </header>
 
-      {/* Menú de Navegación */}
+      {/* Menú de Navegación en tonos grises */}
       <nav style={{
         display: 'flex',
         gap: '8px',
-        background: '#f1f5f9',
+        background: themeColors.navBg,
         padding: '6px',
         borderRadius: '16px',
         marginBottom: '24px',
         overflowX: 'auto'
       }}>
+        {/* Botón: Conocenos */}
+        <button
+          onClick={() => setActiveTab('conocenos')}
+          style={{
+            flex: 1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '6px',
+            padding: '10px 14px',
+            border: 'none',
+            borderRadius: '12px',
+            background: activeTab === 'conocenos' ? themeColors.navBtnActive : 'transparent',
+            color: activeTab === 'conocenos' ? themeColors.navBtnTextActive : themeColors.navBtnTextInactive,
+            fontWeight: 'bold',
+            cursor: 'pointer',
+            whiteSpace: 'nowrap'
+          }}
+        >
+          <Info size={18} /> Conocenos
+        </button>
+
+        {/* Botón: Donar */}
         <button
           onClick={() => setActiveTab('donar')}
           style={{
@@ -112,8 +150,8 @@ export default function App() {
             padding: '10px 14px',
             border: 'none',
             borderRadius: '12px',
-            background: activeTab === 'donar' ? '#ffffff' : 'transparent',
-            color: activeTab === 'donar' ? '#16a34a' : '#64748b',
+            background: activeTab === 'donar' ? themeColors.navBtnActive : 'transparent',
+            color: activeTab === 'donar' ? themeColors.navBtnTextActive : themeColors.navBtnTextInactive,
             fontWeight: 'bold',
             cursor: 'pointer'
           }}
@@ -121,6 +159,7 @@ export default function App() {
           <Heart size={18} /> Donar
         </button>
 
+        {/* Botón: Transparencia */}
         <button
           onClick={() => setActiveTab('transparencia')}
           style={{
@@ -132,8 +171,8 @@ export default function App() {
             padding: '10px 14px',
             border: 'none',
             borderRadius: '12px',
-            background: activeTab === 'transparencia' ? '#ffffff' : 'transparent',
-            color: activeTab === 'transparencia' ? '#16a34a' : '#64748b',
+            background: activeTab === 'transparencia' ? themeColors.navBtnActive : 'transparent',
+            color: activeTab === 'transparencia' ? themeColors.navBtnTextActive : themeColors.navBtnTextInactive,
             fontWeight: 'bold',
             cursor: 'pointer'
           }}
@@ -141,6 +180,7 @@ export default function App() {
           <ShieldCheck size={18} /> Transparencia
         </button>
 
+        {/* Botón: Refugio */}
         <button
           onClick={() => setActiveTab('refugio')}
           style={{
@@ -152,8 +192,8 @@ export default function App() {
             padding: '10px 14px',
             border: 'none',
             borderRadius: '12px',
-            background: activeTab === 'refugio' ? '#ffffff' : 'transparent',
-            color: activeTab === 'refugio' ? '#16a34a' : '#64748b',
+            background: activeTab === 'refugio' ? themeColors.navBtnActive : 'transparent',
+            color: activeTab === 'refugio' ? themeColors.navBtnTextActive : themeColors.navBtnTextInactive,
             fontWeight: 'bold',
             cursor: 'pointer'
           }}
@@ -161,6 +201,7 @@ export default function App() {
           <Home size={18} /> Refugio ({animals.length})
         </button>
 
+        {/* Botón: Reportar */}
         <button
           onClick={() => setActiveTab('reportar')}
           style={{
@@ -172,8 +213,8 @@ export default function App() {
             padding: '10px 14px',
             border: 'none',
             borderRadius: '12px',
-            background: activeTab === 'reportar' ? '#ffffff' : 'transparent',
-            color: activeTab === 'reportar' ? '#16a34a' : '#64748b',
+            background: activeTab === 'reportar' ? themeColors.navBtnActive : 'transparent',
+            color: activeTab === 'reportar' ? themeColors.navBtnTextActive : themeColors.navBtnTextInactive,
             fontWeight: 'bold',
             cursor: 'pointer'
           }}
@@ -184,6 +225,9 @@ export default function App() {
 
       {/* Contenido Principal */}
       <main>
+        {/* SOLUCIÓN AL PROBLEMA: Ahora le pasamos setActiveTab como prop al componente */}
+        {activeTab === 'conocenos' && <HuellitasSection setActiveTab={setActiveTab} />}
+        
         {activeTab === 'donar' && <DonationSection />}
         {activeTab === 'transparencia' && <Transparency />}
         {activeTab === 'refugio' && (
