@@ -1,4 +1,15 @@
-# React + Vite
+# Huellitas de Amor
+
+## Persistencia compartida
+
+La aplicación usa Supabase Realtime para que adopciones, avisos de animales perdidos, comentarios y reacciones se vean entre dispositivos. Si no hay conexión, `usePetsSync` conserva la última lectura en `localStorage`, encola altas, cambios y eliminaciones, y las reintenta al volver online.
+
+1. Creá un proyecto en Supabase.
+2. Ejecutá [`supabase/schema.sql`](supabase/schema.sql) en el SQL Editor.
+3. Copiá [`.env.example`](.env.example) a `.env.local` y completá `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY`.
+4. Configurá `ADMIN_PASSWORD` únicamente como variable del servidor o del entorno de Vite dev. La contraseña nunca se incluye en el bundle.
+
+La clave `service_role` no debe usarse en React. Las políticas SQL incluidas habilitan publicaciones públicas; para producción conviene reemplazar la edición/eliminación pública por una Edge Function autenticada y limitar esas políticas por usuario/rol.
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 

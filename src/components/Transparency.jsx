@@ -19,7 +19,7 @@ import {
 import useAdminAuth from '../hooks/useAdminAuth';
 
 export default function Transparency() {
-  const { isAdmin, loading: adminLoading, error: adminError, login: loginAdmin, logout: logoutAdmin } = useAdminAuth();
+  const { isAdmin, loading: adminLoading, error: adminError, login: loginAdmin, logout: logoutAdmin, clearError } = useAdminAuth();
   const [adminInputPass, setAdminInputPass] = useState('');
   const [showAdminModal, setShowAdminModal] = useState(false);
   
@@ -133,6 +133,7 @@ export default function Transparency() {
   const closeAdminModal = () => {
     setShowAdminModal(false);
     setAdminInputPass('');
+    clearError();
   };
 
   // Copiar al Portapapeles

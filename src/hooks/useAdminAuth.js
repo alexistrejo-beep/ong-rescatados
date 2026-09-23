@@ -62,5 +62,7 @@ export default function useAdminAuth() {
     setError('');
   }, []);
 
-  return { isAdmin: Boolean(session), loading, error, login, logout };
+  const clearError = useCallback(() => setError(''), []);
+
+  return { isAdmin: Boolean(session), loading, error, login, logout, clearError };
 }

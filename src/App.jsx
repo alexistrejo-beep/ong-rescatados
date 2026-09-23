@@ -1,54 +1,31 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import DonationSection from './components/DonationSection';
 import AnimalUploadForm from './components/AnimalUploadForm';
 import AnimalGallery from './components/AnimalGallery';
 import Transparency from './components/Transparency';
 import HuellitasSection from './components/HuellitasSection';
+import usePetsSync from './hooks/usePetsSync';
 import { Heart, Home, Camera, ShieldCheck, Info } from 'lucide-react'; 
 
 export default function App() {
   // Pestaña inicial por defecto
   const [activeTab, setActiveTab] = useState('conocenos');
   
-  // Cargamos los animales guardados en el navegador (localStorage)
-  const [animals, setAnimals] = useState(() => {
-    const saved = localStorage.getItem('huellitas_animals');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        console.error("Error al leer localStorage:", e);
-        return [];
-      }
+  const fallbackAnimals = [
+    {
+      id: 1,
+      name: 'Braulio',
+      species: 'Perro',
+      phone: '3764123456',
+      location: 'Posadas, Misiones',
+      description: 'Rescatado en la calle. Estaba muy flacuchento pero lleno de amor.',
+      images: ['https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&q=80&w=600'],
+      date: '27/07/2026',
+      adopted: true,
+      stories: [{ id: 101, date: '27/07/2026', award: '¡El Rey de la Casa! 👑', text: 'Braulio dejó de ser un abandonado, a ser el rey de la casa. ¡Le encanta dormir en la cama grande y jugar en el patio!' }]
     }
-    // Animalito de ejemplo predeterminado
-    return [
-      {
-        id: 1,
-        name: 'Braulio',
-        species: 'Perro',
-        phone: '3764123456',
-        location: 'Posadas, Misiones',
-        description: 'Rescatado en la calle. Estaba muy flacuchento pero lleno de amor.',
-        images: ['https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&q=80&w=600'],
-        date: '27/07/2026',
-        adopted: true,
-        stories: [
-          {
-            id: 101,
-            date: '27/07/2026',
-            award: '¡El Rey de la Casa! 👑',
-            text: 'Braulio dejó de ser un abandonado, a ser el rey de la casa. ¡Le encanta dormir en la cama grande y jugar en el patio!'
-          }
-        ]
-      }
-    ];
-  });
-
-  // Guardar en localStorage cada vez que cambia la lista de animales
-  useEffect(() => {
-    localStorage.setItem('huellitas_animals', JSON.stringify(animals));
-  }, [animals]);
+  ];
+  const { animals, isLoading, isOnline, syncError, saveAnimal, removeAnimal } = usePetsSync(fallbackAnimals);
 
   // Función que recibe los datos desde AnimalUploadForm.jsx
   const handleAddAnimal = (newAnimal) => {
@@ -60,24 +37,22 @@ export default function App() {
       stories: []
     };
 
-    setAnimals(prev => [animalWithDetails, ...prev]);
+    saveAnimal(animalWithDetails);
     setActiveTab('refugio');
   };
 
   // Maneja tanto creación (id === null) como actualización
   const handleUpdateAnimal = (id, updatedData) => {
     if (!id) {
-      setAnimals(prevAnimals => [updatedData, ...prevAnimals]);
+      saveAnimal(updatedData);
     } else {
-      setAnimals(prevAnimals =>
-        prevAnimals.map(item => (item.id === id ? { ...item, ...updatedData } : item))
-      );
+      saveAnimal(updatedData);
     }
   };
 
   const handleDeleteAnimal = (id) => {
     if (window.confirm('¿Estás seguro de eliminar a este animalito de la lista?')) {
-      setAnimals(prev => prev.filter(item => item.id !== id));
+      removeAnimal(id);
     }
   };
 
@@ -222,6 +197,18 @@ export default function App() {
           <Camera size={18} /> Reportar
         </button>
       </nav>
+
+      {(isLoading || syncError) && (
+        <div role="status" style={{ marginBottom: '12px', color: syncError ? '#9a3412' : '#806b62', fontSize: '0.78rem', textAlign: 'center' }}>
+          {syncError || 'Sincronizando publicaciones...'}
+        </div>
+      )}
+
+      {!isOnline && (
+        <div role="status" style={{ marginBottom: '12px', color: '#9a3412', fontSize: '0.78rem', textAlign: 'center' }}>
+          Sin conexión: tus cambios se guardarán y sincronizarán al volver internet.
+        </div>
+      )}
 
       {/* Contenido Principal */}
       <main>

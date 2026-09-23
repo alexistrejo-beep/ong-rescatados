@@ -4,7 +4,7 @@ import useAdminAuth from '../hooks/useAdminAuth';
 import AdminAuthGuard from './AdminAuthGuard';
 
 export default function RefugioSection({ animals = [], onUpdateAnimal, onDeleteAnimal }) {
-  const { isAdmin, loading: adminLoading, error: adminError, login: loginAdmin, logout: logoutAdmin } = useAdminAuth();
+  const { isAdmin, loading: adminLoading, error: adminError, login: loginAdmin, logout: logoutAdmin, clearError } = useAdminAuth();
   const [adminInputPass, setAdminInputPass] = useState('');
   const [showAdminModal, setShowAdminModal] = useState(false);
   const [selectedImageModal, setSelectedImageModal] = useState(null);
@@ -39,6 +39,7 @@ export default function RefugioSection({ animals = [], onUpdateAnimal, onDeleteA
   const closeAdminModal = () => {
     setShowAdminModal(false);
     setAdminInputPass('');
+    clearError();
   };
 
   // Manejar selección de archivo local (PC / Celular)
