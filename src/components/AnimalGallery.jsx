@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
-import { Heart, MessageCircle, MapPin, Plus, Trash2, Shield, Send, Flag, X, ZoomIn, CheckCircle, ImageOff, Upload } from 'lucide-react';
+import { useState } from 'react';
+import { Heart, MapPin, Plus, Trash2, Shield, Send, Flag, X, ZoomIn, CheckCircle, ImageOff, Upload, MessageCircle } from 'lucide-react';
+import useAdminAuth from '../hooks/useAdminAuth';
+import AdminAuthGuard from './AdminAuthGuard';
 
 export default function RefugioSection({ animals = [], onUpdateAnimal, onDeleteAnimal }) {
-  const [isAdmin, setIsAdmin] = useState(false);
+  const { isAdmin, loading: adminLoading, error: adminError, login: loginAdmin, logout: logoutAdmin } = useAdminAuth();
   const [adminInputPass, setAdminInputPass] = useState('');
   const [showAdminModal, setShowAdminModal] = useState(false);
   const [selectedImageModal, setSelectedImageModal] = useState(null);
@@ -12,30 +14,37 @@ export default function RefugioSection({ animals = [], onUpdateAnimal, onDeleteA
   const [newName, setNewName] = useState('');
   const [newLocation, setNewLocation] = useState('');
   const [newDescription, setNewDescription] = useState('');
-  const [imageUrls, setImageUrls] = useState(['']);
+  const [newAge, setNewAge] = useState('');
+  const [newSize, setNewSize] = useState('Mediano');
+  const [newHealth, setNewHealth] = useState('');
   const [uploadedBase64, setUploadedBase64] = useState('');
+  const [formError, setFormError] = useState('');
 
   // Datos usuario
   const [userName, setUserName] = useState(() => localStorage.getItem('userName') || '');
   const [newCommentText, setNewCommentText] = useState({});
+  const [activeReactions, setActiveReactions] = useState({});
 
   // Validar Contraseña Admin
   const handleAdminLogin = (e) => {
     e.preventDefault();
-    if (adminInputPass === "H3u3ll1t4s.2026!#R3sc4t3s_S3gur0s" || adminInputPass === "1234") {
-      setIsAdmin(true);
-      setShowAdminModal(false);
-      setAdminInputPass('');
-      alert('🔒 Modo Administrador activo.');
-    } else {
-      alert('❌ Contraseña incorrecta.');
-    }
+    loginAdmin(adminInputPass).then((success) => {
+      if (success) {
+        setShowAdminModal(false);
+        setAdminInputPass('');
+      }
+    });
+  };
+
+  const closeAdminModal = () => {
+    setShowAdminModal(false);
+    setAdminInputPass('');
   };
 
   // Manejar selección de archivo local (PC / Celular)
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
-    if (file) {
+    if (file && file.size <= 2 * 1024 * 1024 && file.type.startsWith('image/')) {
       const reader = new FileReader();
       reader.onloadend = () => {
         setUploadedBase64(reader.result);
@@ -44,10 +53,13 @@ export default function RefugioSection({ animals = [], onUpdateAnimal, onDeleteA
     }
   };
 
-  const handleImageChange = (index, val) => {
-    const updated = [...imageUrls];
-    updated[index] = val;
-    setImageUrls(updated);
+  const handleFileDrop = (e) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files[0];
+    if (!file || file.size > 2 * 1024 * 1024 || !file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onloadend = () => setUploadedBase64(reader.result);
+    reader.readAsDataURL(file);
   };
 
   // Alternar estado de Adopción
@@ -67,27 +79,22 @@ export default function RefugioSection({ animals = [], onUpdateAnimal, onDeleteA
   const handleCreatePost = (e) => {
     e.preventDefault();
     
-    // Obtener imágenes válidas (ya sea subida desde PC o por enlace URL)
-    let finalImages = [];
-    if (uploadedBase64) {
-      finalImages.push(uploadedBase64);
-    }
-    
-    const validUrlImages = imageUrls.filter(url => url && url.trim() !== '');
-    finalImages = [...finalImages, ...validUrlImages];
-
-    if (!newName || !newDescription) {
-      alert('Por favor complete los campos obligatorios.');
+    if (!newName.trim() || !newAge.trim() || !newLocation.trim() || !newHealth.trim() || !uploadedBase64) {
+      setFormError('Completá nombre, edad, ubicación, salud/vacunas y una foto.');
       return;
     }
+    setFormError('');
 
     const newPost = {
       id: Date.now(),
       name: newName,
-      location: newLocation || 'Posadas, Misiones',
+      age: newAge,
+      size: newSize,
+      health: newHealth,
+      location: newLocation,
       status: 'En Adopción',
-      images: finalImages,
-      description: newDescription,
+      images: [uploadedBase64],
+      description: newDescription.trim(),
       reactions: { hearts: 0, paws: 0 },
       comments: []
     };
@@ -100,8 +107,11 @@ export default function RefugioSection({ animals = [], onUpdateAnimal, onDeleteA
     setNewName('');
     setNewLocation('');
     setNewDescription('');
-    setImageUrls(['']);
+    setNewAge('');
+    setNewSize('Mediano');
+    setNewHealth('');
     setUploadedBase64('');
+    setFormError('');
     setShowForm(false);
   };
 
@@ -134,9 +144,18 @@ export default function RefugioSection({ animals = [], onUpdateAnimal, onDeleteA
       reported: false
     };
 
-    const updatedComments = [...(animal.comments || []), newComment];
+    const updatedComments = [newComment, ...(animal.comments || [])];
     onUpdateAnimal(animal.id, { ...animal, comments: updatedComments });
     setNewCommentText({ ...newCommentText, [animal.id]: '' });
+  };
+
+  const handleReaction = (animal, reaction) => {
+    const reactions = { ...(animal.reactions || {}) };
+    const reactionKey = `${animal.id}:${reaction}`;
+    const isActive = Boolean(activeReactions[reactionKey]);
+    reactions[reaction] = Math.max(0, (reactions[reaction] || 0) + (isActive ? -1 : 1));
+    setActiveReactions((current) => ({ ...current, [reactionKey]: !isActive }));
+    onUpdateAnimal(animal.id, { ...animal, reactions });
   };
 
   return (
@@ -164,7 +183,7 @@ export default function RefugioSection({ animals = [], onUpdateAnimal, onDeleteA
               <span style={{ background: '#dcfce7', color: '#15803d', padding: '6px 12px', borderRadius: '20px', fontSize: '0.8rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <Shield size={14} /> Moderador Activo
               </span>
-              <button onClick={() => setIsAdmin(false)} style={{ background: '#f1f5f9', border: 'none', padding: '6px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem' }}>Salir</button>
+              <button onClick={() => { logoutAdmin(); setShowForm(false); }} style={{ background: '#f1f5f9', border: 'none', padding: '6px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem' }}>Salir del modo admin</button>
             </div>
           ) : (
             <button
@@ -179,11 +198,11 @@ export default function RefugioSection({ animals = [], onUpdateAnimal, onDeleteA
 
       {/* Modal Admin */}
       {showAdminModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
-          <div style={{ background: '#fff', padding: '24px', borderRadius: '16px', maxWidth: '400px', width: '90%', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
+        <div onMouseDown={(e) => { if (e.target === e.currentTarget) closeAdminModal(); }} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+          <div onMouseDown={(e) => e.stopPropagation()} style={{ background: '#fff', padding: '24px', borderRadius: '16px', maxWidth: '400px', width: '90%', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#0f172a' }}>Acceso Administrador</h3>
-              <button onClick={() => setShowAdminModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={20} /></button>
+              <button type="button" aria-label="Cerrar acceso administrador" onClick={closeAdminModal} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={20} /></button>
             </div>
             <form onSubmit={handleAdminLogin}>
               <input
@@ -193,9 +212,13 @@ export default function RefugioSection({ animals = [], onUpdateAnimal, onDeleteA
                 onChange={(e) => setAdminInputPass(e.target.value)}
                 style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', marginBottom: '14px', boxSizing: 'border-box' }}
               />
-              <button type="submit" style={{ width: '100%', background: '#16a34a', color: '#fff', border: 'none', padding: '10px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>
-                Ingresar
-              </button>
+              {adminError && <p style={{ color: '#dc2626', fontSize: '0.8rem', margin: '-6px 0 10px' }}>{adminError}</p>}
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button type="button" onClick={closeAdminModal} style={{ flex: 1, background: '#e2e8f0', color: '#1e293b', border: 'none', padding: '10px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>Cancelar</button>
+                <button type="submit" disabled={adminLoading} style={{ flex: 1, background: '#16a34a', color: '#fff', border: 'none', padding: '10px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>
+                  {adminLoading ? 'Validando...' : 'Ingresar'}
+                </button>
+              </div>
             </form>
           </div>
         </div>
@@ -204,24 +227,31 @@ export default function RefugioSection({ animals = [], onUpdateAnimal, onDeleteA
       {/* Encabezado */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
         <h2 style={{ margin: 0, color: '#0f172a', fontSize: '1.3rem' }}>Historias de Rescate ({animals.length})</h2>
-        <button
-          onClick={() => setShowForm(!showForm)}
-          style={{ background: '#16a34a', color: '#fff', border: 'none', padding: '8px 14px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem' }}
-        >
-          <Plus size={16} /> Publicar Rescatado
-        </button>
+        <AdminAuthGuard isAdmin={isAdmin} fallback={<span style={{ color: '#64748b', fontSize: '0.78rem' }}>Ingresá como admin para publicar</span>}>
+          <button
+            onClick={() => setShowForm(!showForm)}
+            style={{ background: '#16a34a', color: '#fff', border: 'none', padding: '8px 14px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem' }}
+          >
+            <Plus size={16} /> Publicar Rescatado
+          </button>
+        </AdminAuthGuard>
       </div>
 
       {/* Formulario Corregido */}
-      {showForm && (
+      {showForm && isAdmin && (
         <form onSubmit={handleCreatePost} style={{ background: '#ffffff', padding: '16px', borderRadius: '12px', border: '1px solid #cbd5e1', marginBottom: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
           <h3 style={{ margin: 0, fontSize: '1rem', color: '#0f172a' }}>Registrar nuevo animalito</h3>
-          <input type="text" placeholder="Nombre" value={newName} onChange={(e) => setNewName(e.target.value)} style={{ padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }} required />
-          <input type="text" placeholder="Ubicación (Ej: Posadas, Misiones)" value={newLocation} onChange={(e) => setNewLocation(e.target.value)} style={{ padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
+          <input type="text" placeholder="Nombre del animal" value={newName} onChange={(e) => setNewName(e.target.value)} style={{ padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }} required />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+            <input type="text" placeholder="Edad o etapa (Ej: 2 años)" value={newAge} onChange={(e) => setNewAge(e.target.value)} style={{ padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }} required />
+            <select value={newSize} onChange={(e) => setNewSize(e.target.value)} style={{ padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }}><option>Pequeño</option><option>Mediano</option><option>Grande</option></select>
+          </div>
+          <input type="text" placeholder="Ubicación (Ej: Posadas, Misiones)" value={newLocation} onChange={(e) => setNewLocation(e.target.value)} style={{ padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }} required />
+          <input type="text" placeholder="Salud y vacunas (Ej: vacunado, castrado)" value={newHealth} onChange={(e) => setNewHealth(e.target.value)} style={{ padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }} required />
           <textarea placeholder="Historia del rescate..." value={newDescription} onChange={(e) => setNewDescription(e.target.value)} style={{ padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1', minHeight: '70px' }} required />
 
           {/* Carga de Imagen */}
-          <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px dashed #cbd5e1', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div onDragOver={(e) => e.preventDefault()} onDrop={handleFileDrop} style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px dashed #cbd5e1', display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <label style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#475569', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <Upload size={14} /> Seleccionar archivo desde tu dispositivo:
             </label>
@@ -238,20 +268,10 @@ export default function RefugioSection({ animals = [], onUpdateAnimal, onDeleteA
               </div>
             )}
 
-            <span style={{ fontSize: '0.75rem', color: '#94a3b8', textAlign: 'center', fontWeight: 'bold', margin: '4px 0' }}>— O BIEN PEGÁ UN ENLACE DE INTERNET —</span>
-
-            {imageUrls.map((url, idx) => (
-              <input 
-                key={idx} 
-                type="text" 
-                placeholder="https://..." 
-                value={url} 
-                onChange={(e) => handleImageChange(idx, e.target.value)} 
-                style={{ width: '100%', padding: '6px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.8rem', boxSizing: 'border-box' }} 
-              />
-            ))}
+            {uploadedBase64 && <img src={uploadedBase64} alt="Vista previa del animal" style={{ width: '100%', maxHeight: '160px', objectFit: 'cover', borderRadius: '8px' }} />}
           </div>
 
+          {formError && <p style={{ color: '#dc2626', fontSize: '0.8rem', margin: 0 }}>{formError}</p>}
           <button type="submit" style={{ background: '#16a34a', color: '#fff', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', marginTop: '8px' }}>Guardar y Publicar</button>
         </form>
       )}
@@ -418,6 +438,11 @@ export default function RefugioSection({ animals = [], onUpdateAnimal, onDeleteA
                 
                 {/* Botón para Tildar como Adoptado */}
                 <div style={{ marginBottom: '12px', display: 'flex', justifyContent: 'flex-end' }}>
+                  {animal.phone && (animal.status === 'Animal perdido' || animal.status === 'Perdido') && (
+                    <a href={`https://wa.me/${String(animal.phone).replace(/\D/g, '')}`} target="_blank" rel="noreferrer" style={{ marginRight: 'auto', display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#e8f5e9', color: '#287d3c', padding: '6px 10px', borderRadius: '9px', textDecoration: 'none', fontSize: '0.8rem', fontWeight: 'bold' }}>
+                      <MessageCircle size={14} /> Contactar por WhatsApp
+                    </a>
+                  )}
                   <button
                     onClick={() => toggleAdoptedStatus(animal)}
                     style={{
@@ -441,6 +466,21 @@ export default function RefugioSection({ animals = [], onUpdateAnimal, onDeleteA
                 </div>
 
                 <p style={{ margin: '0 0 12px 0', color: '#334155', fontSize: '0.88rem', lineHeight: '1.45', whiteSpace: 'pre-line' }}>{animal.description}</p>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', flexWrap: 'wrap' }} aria-label="Reacciones">
+                  {[['heart', '❤️'], ['sad', '🥺'], ['pray', '🙏'], ['paws', '🐾'], ['home', '🏠']].map(([reaction, emoji]) => (
+                    <button
+                      key={reaction}
+                      type="button"
+                      onClick={() => handleReaction(animal, reaction)}
+                      aria-label={`Reaccionar con ${emoji}`}
+                      style={{ background: activeReactions[`${animal.id}:${reaction}`] ? '#fef2f2' : '#fff', border: activeReactions[`${animal.id}:${reaction}`] ? '1px solid #fca5a5' : '1px solid #e2e8f0', borderRadius: '18px', padding: '5px 9px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                    >
+                      <span>{emoji}</span><small>{animal.reactions?.[reaction] || 0}</small>
+                    </button>
+                  ))}
+                  <span style={{ color: '#64748b', fontSize: '0.78rem' }}><Heart size={14} fill="#ef4444" color="#ef4444" /> Apoyá esta historia</span>
+                </div>
 
                 {/* Comentarios */}
                 <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '12px', border: '1px solid #f1f5f9' }}>

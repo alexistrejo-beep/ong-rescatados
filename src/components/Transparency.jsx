@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   ShieldCheck, 
   HeartPulse, 
@@ -14,12 +14,12 @@ import {
   Check, 
   Plus, 
   Trash2, 
-  Camera, 
-  Image as ImageIcon 
+  Camera
 } from 'lucide-react';
+import useAdminAuth from '../hooks/useAdminAuth';
 
 export default function Transparency() {
-  const [isAdmin, setIsAdmin] = useState(false);
+  const { isAdmin, loading: adminLoading, error: adminError, login: loginAdmin, logout: logoutAdmin } = useAdminAuth();
   const [adminInputPass, setAdminInputPass] = useState('');
   const [showAdminModal, setShowAdminModal] = useState(false);
   
@@ -122,14 +122,17 @@ export default function Transparency() {
   // Login Administrador
   const handleAdminLogin = (e) => {
     e.preventDefault();
-    if (adminInputPass === "H3u3ll1t4s.2026!#R3sc4t3s_S3gur0s" || adminInputPass === "1234") {
-      setIsAdmin(true);
-      setShowAdminModal(false);
-      setAdminInputPass('');
-      alert('🔒 Modo Administrador activo.');
-    } else {
-      alert('❌ Contraseña incorrecta.');
-    }
+    loginAdmin(adminInputPass).then((success) => {
+      if (success) {
+        setShowAdminModal(false);
+        setAdminInputPass('');
+      }
+    });
+  };
+
+  const closeAdminModal = () => {
+    setShowAdminModal(false);
+    setAdminInputPass('');
   };
 
   // Copiar al Portapapeles
@@ -220,7 +223,7 @@ export default function Transparency() {
             <span style={{ background: '#dcfce7', color: '#15803d', padding: '4px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
               <Shield size={14} /> Modo Admin Activo
             </span>
-            <button onClick={() => setIsAdmin(false)} style={{ background: '#cbd5e1', border: 'none', padding: '4px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 'bold' }}>Salir</button>
+            <button onClick={() => { logoutAdmin(); setShowExpenseForm(false); setShowPhotoForm(false); }} style={{ background: '#cbd5e1', border: 'none', padding: '4px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 'bold' }}>Salir del modo admin</button>
           </div>
         ) : (
           <button
@@ -234,11 +237,11 @@ export default function Transparency() {
 
       {/* Modal Admin */}
       {showAdminModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
-          <div style={{ background: '#fff', padding: '24px', borderRadius: '16px', maxWidth: '380px', width: '90%', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
+        <div onMouseDown={(e) => { if (e.target === e.currentTarget) closeAdminModal(); }} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+          <div onMouseDown={(e) => e.stopPropagation()} style={{ background: '#fff', padding: '24px', borderRadius: '16px', maxWidth: '380px', width: '90%', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#0f172a' }}>Acceso Administrador</h3>
-              <button onClick={() => setShowAdminModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={20} /></button>
+              <button type="button" aria-label="Cerrar acceso administrador" onClick={closeAdminModal} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={20} /></button>
             </div>
             <form onSubmit={handleAdminLogin}>
               <input
@@ -248,9 +251,13 @@ export default function Transparency() {
                 onChange={(e) => setAdminInputPass(e.target.value)}
                 style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', marginBottom: '14px', boxSizing: 'border-box' }}
               />
-              <button type="submit" style={{ width: '100%', background: '#16a34a', color: '#fff', border: 'none', padding: '10px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>
-                Ingresar
-              </button>
+              {adminError && <p style={{ color: '#dc2626', fontSize: '0.8rem', margin: '-6px 0 10px' }}>{adminError}</p>}
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button type="button" onClick={closeAdminModal} style={{ flex: 1, background: '#e2e8f0', color: '#1e293b', border: 'none', padding: '10px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>Cancelar</button>
+                <button type="submit" disabled={adminLoading} style={{ flex: 1, background: '#16a34a', color: '#fff', border: 'none', padding: '10px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>
+                  {adminLoading ? 'Validando...' : 'Ingresar'}
+                </button>
+              </div>
             </form>
           </div>
         </div>

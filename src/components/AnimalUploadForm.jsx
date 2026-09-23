@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Camera, MapPin, Send, Phone, AlertCircle } from 'lucide-react';
+import { useState } from 'react';
+import { Camera, MapPin, Send, Phone } from 'lucide-react';
 
 export default function AnimalUploadForm({ onAddAnimal }) {
   const [form, setForm] = useState({
@@ -7,9 +7,12 @@ export default function AnimalUploadForm({ onAddAnimal }) {
     type: 'Perro',
     location: '',
     phone: '',
+    lostDate: '',
+    description: '',
     imagePreview: null
   });
   const [toast, setToast] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const showToast = (msg) => {
     setToast(msg);
@@ -41,20 +44,25 @@ export default function AnimalUploadForm({ onAddAnimal }) {
       return;
     }
 
-    // AHORA SÍ: Mapeamos la propiedad para que la galería lea la imagen correctamente
-    onAddAnimal({
-      ...form,
-      images: [form.imagePreview], // Compatibilidad con galería basada en array de imágenes
-      image: form.imagePreview,   // Compatibilidad con tarjetas que usan imagen individual
-      species: form.type,         // Compatibilidad con la propiedad 'species' en la galería
-      description: `Rescatado/encontrado en ${form.location}. Teléfono de contacto: ${form.phone}`,
-      reactions: { heart: 0, paws: 0, sad: 0, party: 0 },
-      comments: [],
-      reports: 0
-    });
-
-    setForm({ name: '', type: 'Perro', location: '', phone: '', imagePreview: null });
-    showToast('✨ ¡Animal registrado con éxito!');
+    setIsSubmitting(true);
+    try {
+      onAddAnimal({
+        ...form,
+        images: [form.imagePreview],
+        image: form.imagePreview,
+        species: form.type,
+        status: 'Animal perdido',
+        reactions: { heart: 0, paws: 0, sad: 0, party: 0 },
+        comments: [],
+        reports: 0
+      });
+      setForm({ name: '', type: 'Perro', location: '', phone: '', lostDate: '', description: '', imagePreview: null });
+      showToast('✨ ¡Aviso de animal perdido publicado!');
+    } catch {
+      showToast('No se pudo publicar el aviso. Intentá nuevamente.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -91,8 +99,8 @@ export default function AnimalUploadForm({ onAddAnimal }) {
           <Camera size={24} />
         </div>
         <div>
-          <h2 style={{ margin: 0, fontSize: '1.3rem', color: '#1e293b' }}>Reportar Animal Encontrado</h2>
-          <p style={{ margin: 0, fontSize: '0.88rem', color: '#64748b' }}>Completa los datos para coordinar el refugio</p>
+          <h2 style={{ margin: 0, fontSize: '1.3rem', color: '#1e293b' }}>Reportar Animal Perdido</h2>
+          <p style={{ margin: 0, fontSize: '0.88rem', color: '#64748b' }}>Publicá un aviso para ayudar a encontrarlo</p>
         </div>
       </div>
 
@@ -145,6 +153,17 @@ export default function AnimalUploadForm({ onAddAnimal }) {
               required
               style={{ width: '100%', padding: '12px 12px 12px 38px', borderRadius: '10px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }}
             />
+          </div>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+          <div>
+            <label htmlFor="lost-date" style={{ display: 'block', fontSize: '0.85rem', fontWeight: 'bold', color: '#475569', marginBottom: '6px' }}>Fecha de pérdida</label>
+            <input id="lost-date" type="date" value={form.lostDate} onChange={(e) => setForm({ ...form, lostDate: e.target.value })} required style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} />
+          </div>
+          <div>
+            <label htmlFor="lost-description" style={{ display: 'block', fontSize: '0.85rem', fontWeight: 'bold', color: '#475569', marginBottom: '6px' }}>Descripción</label>
+            <textarea id="lost-description" placeholder="Señas particulares, collar, etc." value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} required style={{ width: '100%', minHeight: '44px', padding: '10px', borderRadius: '10px', border: '1px solid #cbd5e1', boxSizing: 'border-box', resize: 'vertical' }} />
           </div>
         </div>
 
@@ -204,7 +223,7 @@ export default function AnimalUploadForm({ onAddAnimal }) {
             cursor: 'pointer'
           }}
         >
-          <Send size={18} /> Publicar para Buscar Refugio
+          <Send size={18} /> {isSubmitting ? 'Publicando...' : 'Publicar aviso'}
         </button>
       </form>
     </section>

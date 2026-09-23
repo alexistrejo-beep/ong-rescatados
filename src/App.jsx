@@ -83,12 +83,12 @@ export default function App() {
 
   // Colores de la app adaptados a la nueva estética gris minimalista
   const themeColors = {
-    textHeader: '#27272a',
-    textMuted: '#71717a',
-    navBg: '#e4e4e7',
+    textHeader: '#4a2e2b',
+    textMuted: '#806b62',
+    navBg: '#f2dfd2',
     navBtnActive: '#ffffff',
     navBtnTextActive: '#27272a',
-    navBtnTextInactive: '#71717a'
+    navBtnTextInactive: '#806b62'
   };
 
   return (
